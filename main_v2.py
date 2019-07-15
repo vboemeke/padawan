@@ -34,8 +34,8 @@ def calculate_spread(book_dataframe):
     min_ask_price = book_dataframe['Ask Price'].min()
     #todo deal with more than one exchanges with exactly same price or volume
         #ValueError: The truth value of an array with more than one element is ambiguous
-    volume_max_bid = float(book_dataframe[book_dataframe['Bid Price'] == max_bid_price]['Bid Volume']).max()
-    volume_min_ask = float(book_dataframe[book_dataframe['Ask Price'] == min_ask_price]['Ask Volume']).max()
+    volume_max_bid = book_dataframe[book_dataframe['Bid Price'] == max_bid_price]['Bid Volume'].max()
+    volume_min_ask = book_dataframe[book_dataframe['Ask Price'] == min_ask_price]['Ask Volume'].max()
     print('volume_bid: %f e volume_ask: %f' % (volume_max_bid, volume_min_ask))
     buying_exchange = book_dataframe[book_dataframe['Ask Price'] == min_ask_price]['Exchange'].values.any()
     selling_exchange = book_dataframe[book_dataframe['Bid Price'] == max_bid_price]['Exchange'].values.any()
