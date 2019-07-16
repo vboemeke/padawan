@@ -1,5 +1,5 @@
-#Reference from Blackbird
-#Usage: "import config" to use parameters "config.PARAMETER"
+# Reference from Blackbird
+# Usage: "import config" to use parameters "config.PARAMETER"
 
 # Program parameters
 DemoMode=True

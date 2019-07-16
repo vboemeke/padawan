@@ -1,14 +1,7 @@
-# coding=utf-8
-
-# import ccxt.async_support as ccxt
-import ccxt
-import config
 from fetch_infos import fetch_data
 import time
 import pandas as pd
 
-dict = dict()
-list_of_books = []
 target_entry_spread = 1.0002
 target_exit_spread = 0.00003
 in_trade = False
@@ -24,29 +17,36 @@ def generate_dataframe(**kwargs):
     #     exchange_list = ['kraken', 'bittrex', 'bitmex']
     # else:
     #     exchange_list = exchagens
+
     dict = {}
     list_of_books = []
-    # todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
+
+    # todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
+    # but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
 
     for i in exchange_list:
-        book = {}
         book = fetch_data(i)
         if len(book) != 0:
             dict[i] = book
             list_of_books.append([i, book['bids'][1][0], book['bids'][1][1], book['asks'][1][0], book['asks'][1][1]])
     return pd.DataFrame(list_of_books, columns=['Exchange', 'Bid Price', 'Bid Volume', 'Ask Price', 'Ask Volume'])
 
+
 def max_bid_price():
     return book_df['Bid Price'].max()
+
 
 def min_ask_price():
     return book_df['Ask Price'].min()
 
+
 def max_bid_volume():
     return book_df[book_df['Bid Price'] == max_bid_price()]['Bid Volume'].max()
 
+
 def min_ask_volume():
     return book_df[book_df['Ask Price'] == min_ask_price()]['Ask Volume'].max()
+
 
 def calculate_spread():
     # todo deal with more than one exchanges with exactly same price or volume
@@ -67,6 +67,7 @@ def calculate_spread():
             selling_exchange,
             buying_exchange]
 
+
 def simulate_trade(list_infos):
     usd_buy = -(list_infos[2] * list_infos[3])
     usd_sell = (list_infos[1] * list_infos[3])
@@ -78,15 +79,19 @@ def simulate_trade(list_infos):
 
 
 def best_bid_exchange_price():
-    return book_df.loc[(book_df['Bid Price'] == max_bid_price()) & (book_df['Bid Volume'] == max_bid_volume())]['Exchange']
+    return book_df.loc[(book_df['Bid Price'] == max_bid_price()) & (book_df['Bid Volume'] == max_bid_volume())][
+        'Exchange']
 
 
 def best_ask_exchange_price():
-    return book_df.loc[(book_df['Ask Price'] == min_ask_price()) & (book_df['Ask Volume'] == min_ask_volume())]['Exchange']
+    return book_df.loc[(book_df['Ask Price'] == min_ask_price()) & (book_df['Ask Volume'] == min_ask_volume())][
+        'Exchange']
+
 
 def trade_volume(bid, ask):
-    if (bid > ask): return float(0.5 * ask)
+    if bid > ask: return float(0.5 * ask)
     return float(0.5 * bid)
+
 
 while 1 < 2:
     book_df = generate_dataframe()
