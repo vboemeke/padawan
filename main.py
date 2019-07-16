@@ -2,6 +2,7 @@
 
 # import ccxt.async_support as ccxt
 import ccxt
+import config
 from fetch_infos import fetch_data
 import time
 import pandas as pd
@@ -68,7 +69,7 @@ while 1 < 2:
                 greatest_spread = entry_spread
             print('==== \n Maior spread da análise = %f \n====' % greatest_spread)
             print('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (entry_spread, entry_volume))
-            temp_balance = simulate_trade(spread)
+            temp_balance += simulate_trade(spread)
             in_trade = True
         else:
             print('target < %f' % target_entry_spread)
@@ -83,5 +84,6 @@ while 1 < 2:
             print('Saindo da operação no spread %f, sendo lucro: %f' % (spread[0], entry_spread-spread[0]))
             #todo to exit you need monitor traded exchanges - buy where sold and sell where bought!
             temp_balance += temp_balance + simulate_trade(spread)
+            print('Saldo atual: %f' % temp_balance)
             in_trade = False
     time.sleep(2)
