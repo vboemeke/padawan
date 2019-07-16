@@ -15,6 +15,7 @@ in_trade = False
 start_balance = float(0)
 temp_balance = float(0)
 greatest_spread = float(0)
+global book_df
 
 
 def generate_dataframe(**kwargs):
@@ -33,33 +34,38 @@ def generate_dataframe(**kwargs):
         if len(book) != 0:
             dict[i] = book
             list_of_books.append([i, book['bids'][1][0], book['bids'][1][1], book['asks'][1][0], book['asks'][1][1]])
-    book_df = pd.DataFrame(list_of_books, columns=['Exchange', 'Bid Price', 'Bid Volume', 'Ask Price', 'Ask Volume'])
-    return book_df
+    return pd.DataFrame(list_of_books, columns=['Exchange', 'Bid Price', 'Bid Volume', 'Ask Price', 'Ask Volume'])
 
+def max_bid_price():
+    return book_df['Bid Price'].max()
 
-def calculate_spread(book_df):
-    max_bid_price = book_df['Bid Price'].max()
-    min_ask_price = book_df['Ask Price'].min()
+def min_ask_price():
+    return book_df['Ask Price'].min()
+
+def max_bid_volume():
+    return book_df[book_df['Bid Price'] == max_bid_price()]['Bid Volume'].max()
+
+def min_ask_volume():
+    return book_df[book_df['Ask Price'] == min_ask_price()]['Ask Volume'].max()
+
+def calculate_spread():
     # todo deal with more than one exchanges with exactly same price or volume
     # ValueError: The truth value of an array with more than one element is ambiguous
-    max_bid_volume = book_df[book_df['Bid Price'] == max_bid_price]['Bid Volume'].max()
-    min_ask_volume = book_df[book_df['Ask Price'] == min_ask_price]['Ask Volume'].max()
-    print('volume_bid: %f e volume_ask: %f' % (max_bid_volume, min_ask_volume))
+    print('volume_bid: %f e volume_ask: %f' % (max_bid_volume(), min_ask_volume()))
     print(book_df)
 
-    buying_exchange = best_ask_exchange_price(book_df, min_ask_price, min_ask_volume)
-    selling_exchange = best_bid_exchange_price(book_df, max_bid_price, max_bid_volume)
+    buying_exchange = best_ask_exchange_price()
+    selling_exchange = best_bid_exchange_price()
 
     print(buying_exchange)
     print(selling_exchange)
 
-    if (max_bid_volume > min_ask_volume):
-        volume_to_trade = float(0.5 * min_ask_volume)
-    else:
-        volume_to_trade = float(0.5 * max_bid_volume)
-    spread = float(max_bid_price / min_ask_price)
-    return [spread, max_bid_price, min_ask_price, volume_to_trade, selling_exchange, buying_exchange]
-
+    spread = float(max_bid_price() / min_ask_price())
+    return [spread, max_bid_price(),
+            min_ask_price(),
+            trade_volume(max_bid_volume(), min_ask_volume()),
+            selling_exchange,
+            buying_exchange]
 
 def simulate_trade(list_infos):
     usd_buy = -(list_infos[2] * list_infos[3])
@@ -71,17 +77,20 @@ def simulate_trade(list_infos):
     return ('buying_exchange', buying_exchange, usd_buy), ('selling_exchange', selling_exchange, usd_sell)
 
 
-def best_bid_exchange_price(book_df, max_bid_price, max_bid_volume):
-    return book_df.loc[(book_df['Bid Price'] == max_bid_price) & (book_df['Bid Volume'] == max_bid_volume)]['Exchange']
+def best_bid_exchange_price():
+    return book_df.loc[(book_df['Bid Price'] == max_bid_price()) & (book_df['Bid Volume'] == max_bid_volume())]['Exchange']
 
 
-def best_ask_exchange_price(book_df, min_ask_price, min_ask_volume):
-    return book_df.loc[(book_df['Ask Price'] == min_ask_price) & (book_df['Ask Volume'] == min_ask_volume)]['Exchange']
+def best_ask_exchange_price():
+    return book_df.loc[(book_df['Ask Price'] == min_ask_price()) & (book_df['Ask Volume'] == min_ask_volume())]['Exchange']
 
+def trade_volume(bid, ask):
+    if (bid > ask): return float(0.5 * ask)
+    return float(0.5 * bid)
 
 while 1 < 2:
-    book_2 = generate_dataframe()
-    spread = calculate_spread(book_2)
+    book_df = generate_dataframe()
+    spread = calculate_spread()
 
     if not in_trade:
         if spread[0] > target_entry_spread:
