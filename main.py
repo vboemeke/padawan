@@ -17,10 +17,11 @@ temp_balance = float(0)
 greatest_spread = float(0)
 
 def generate_dataframe(**kwargs):
-    if (len(exchanges) == 0):
-        exchange_list = ['kraken', 'bittrex', 'bitmex']
-    else:
-        exchange_list = exchagens
+    exchange_list = ['kraken', 'bittrex', 'bitmex']
+    # if (len(exchanges) == 0):
+    #     exchange_list = ['kraken', 'bittrex', 'bitmex']
+    # else:
+    #     exchange_list = exchagens
     dict = {}
     list_of_books = []
     #todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
