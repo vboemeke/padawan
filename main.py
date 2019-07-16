@@ -19,13 +19,14 @@ def generate_dataframe(**kwargs):
     #     exchange_list = ['kraken', 'bittrex', 'bitmex']
     # else:
     #     exchange_list = exchagens
+
     dict = {}
     list_of_books = []
 
-    # todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
+    # todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
+    # but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
 
     for i in exchange_list:
-        book = {}
         book = fetch_data(i)
         if len(book) != 0:
             dict[i] = book
