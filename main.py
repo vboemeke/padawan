@@ -1,11 +1,11 @@
 # coding=utf-8
 
-from fetch_infos import fetch_data
+from fetch_infos import fetch_exchange_data
 import time
 import pandas as pd
 
-target_entry_spread = 1.0002
-target_exit_spread = 0.00003
+target_entry_spread = 1.002
+target_exit_spread = 0.0003
 in_trade = False
 start_balance = float(0)
 temp_balance = float(0)
@@ -15,22 +15,17 @@ global book_df
 
 def generate_dataframe(**kwargs):
     exchange_list = ['kraken', 'bittrex', 'bitmex']
-    # if (len(exchanges) == 0):
-    #     exchange_list = ['kraken', 'bittrex', 'bitmex']
-    # else:
-    #     exchange_list = exchagens
-
     dict = {}
     list_of_books = []
 
     # todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
     # but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
 
-    for i in exchange_list:
-        book = fetch_data(i)
-        if len(book) != 0:
-            dict[i] = book
-            list_of_books.append([i, book['bids'][1][0], book['bids'][1][1], book['asks'][1][0], book['asks'][1][1]])
+    for exchange_name in exchange_list:
+        exchange_data = fetch_exchange_data(exchange_name)
+        if exchange_data != {}:
+            dict[exchange_name] = exchange_data
+            list_of_books.append([exchange_name, exchange_data['bids'][0][0], exchange_data['bids'][0][1], exchange_data['asks'][0][0], exchange_data['asks'][0][1]])
     return pd.DataFrame(list_of_books, columns=['Exchange', 'Bid Price', 'Bid Volume', 'Ask Price', 'Ask Volume'])
 
 
@@ -42,32 +37,43 @@ def min_ask_price():
     return book_df['Ask Price'].min()
 
 
+# TODO: I need to validate when two exchanges contains the same max_bid_price
 def max_bid_volume():
     return book_df[book_df['Bid Price'] == max_bid_price()]['Bid Volume'].max()
 
 
+# TODO: I need to validate when two exchanges contains the same min_ask_price
 def min_ask_volume():
     return book_df[book_df['Ask Price'] == min_ask_price()]['Ask Volume'].max()
 
 
-def calculate_spread():
-    # todo deal with more than one exchanges with exactly same price or volume
-    # ValueError: The truth value of an array with more than one element is ambiguous
+def best_bid_exchange_price():
+    return book_df.loc[(book_df['Bid Price'] == max_bid_price()) & (book_df['Bid Volume'] == max_bid_volume())][
+        'Exchange'].values[0]
+
+
+def best_ask_exchange_price():
+    return book_df.loc[(book_df['Ask Price'] == min_ask_price()) & (book_df['Ask Volume'] == min_ask_volume())][
+        'Exchange'].values[0]
+
+
+def best_opportunity():
     print('volume_bid: %f e volume_ask: %f' % (max_bid_volume(), min_ask_volume()))
-    print(book_df)
 
     buying_exchange = best_ask_exchange_price()
     selling_exchange = best_bid_exchange_price()
 
-    print(buying_exchange)
-    print(selling_exchange)
-
     spread = float(max_bid_price() / min_ask_price())
-    return [spread, max_bid_price(),
+    return [spread,
+            max_bid_price(),
             min_ask_price(),
             trade_volume(max_bid_volume(), min_ask_volume()),
             selling_exchange,
             buying_exchange]
+
+
+def trade_volume(bid, ask):
+    return float(0.5 * ask) if bid > ask else float(0.5 * bid)
 
 
 def simulate_trade(list_infos):
@@ -75,36 +81,21 @@ def simulate_trade(list_infos):
     usd_sell = (list_infos[1] * list_infos[3])
     buying_exchange = list_infos[5]
     selling_exchange = list_infos[4]
-    print('Comprado por (US$ %s): %s na: %s' % (list_infos[2], usd_buy, buying_exchange))
-    print('Vendido por (US$ %s): %s na: %s' % (list_infos[1], usd_sell, selling_exchange))
+    print('Comprou: \n Volume: (US$ %s) \n Cotação: %s \n Exchange: %s' % (list_infos[2], usd_buy, buying_exchange))
+    print('Vendeu: \n Volume: (US$ %s) \n Cotação: %s \n Exchange: %s' % (list_infos[1], usd_sell, selling_exchange))
     return ('buying_exchange', buying_exchange, usd_buy), ('selling_exchange', selling_exchange, usd_sell)
-
-
-def best_bid_exchange_price():
-    return book_df.loc[(book_df['Bid Price'] == max_bid_price()) & (book_df['Bid Volume'] == max_bid_volume())][
-        'Exchange']
-
-
-def best_ask_exchange_price():
-    return book_df.loc[(book_df['Ask Price'] == min_ask_price()) & (book_df['Ask Volume'] == min_ask_volume())][
-        'Exchange']
-
-
-def trade_volume(bid, ask):
-    if bid > ask: return float(0.5 * ask)
-    return float(0.5 * bid)
 
 
 while 1 < 2:
     book_df = generate_dataframe()
-    spread = calculate_spread()
+    opportunity = best_opportunity()
 
     if not in_trade:
-        if spread[0] > target_entry_spread:
-            print(float(spread[3]))
-            entry_spread = float(spread[0])
-            entry_volume = float(spread[3])
+        if opportunity[0] > target_entry_spread:
+            entry_spread = float(opportunity[0])
+            entry_volume = float(opportunity[3])
             if entry_spread > greatest_spread:
+                print('*** Novo Record de Spread ***')
                 greatest_spread = entry_spread
             print('==== \n Maior spread da análise = %f \n====' % greatest_spread)
             print('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (
@@ -112,11 +103,11 @@ while 1 < 2:
             # buying_exchange = list_infos[5]
             # selling_exchange = list_infos[4]
 
-            operation = simulate_trade(spread)
+            operation = simulate_trade(opportunity)
             temp_balance = operation[0][2] + operation[1][2]
             in_trade = True
         else:
-            print('target < %f' % target_entry_spread)
+            print('pulando - target < %f' % target_entry_spread)
         # print('spread', spread)
         # print(book_2)
     else:
