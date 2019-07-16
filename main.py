@@ -16,34 +16,38 @@ start_balance = float(0)
 temp_balance = float(0)
 greatest_spread = float(0)
 
-def generate_dataframe():
+def generate_dataframe(**kwargs):
+    if (len(exchanges) == 0):
+        exchange_list = ['kraken', 'bittrex', 'bitmex']
+    else:
+        exchange_list = exchagens
     dict = {}
     list_of_books = []
     #todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
-    exchange_list = ['kraken', 'bittrex', 'bitmex']
+
     for i in exchange_list:
         book = {}
         book = fetch_data(i)
         if len(book) != 0 :
             dict[i] = book
             list_of_books.append([i,book['bids'][1][0],book['bids'][1][1],book['asks'][1][0],book['asks'][1][1]])
-    book_dataframe = pd.DataFrame(list_of_books, columns = ['Exchange', 'Bid Price', 'Bid Volume', 'Ask Price', 'Ask Volume'])
-    return book_dataframe
+    book_df = pd.DataFrame(list_of_books, columns = ['Exchange', 'Bid Price', 'Bid Volume', 'Ask Price', 'Ask Volume'])
+    return book_df
 
-def calculate_spread(book_dataframe):
-    max_bid_price = book_dataframe['Bid Price'].max()
-    min_ask_price = book_dataframe['Ask Price'].min()
+def calculate_spread(book_df):
+    max_bid_price = book_df['Bid Price'].max()
+    min_ask_price = book_df['Ask Price'].min()
     #todo deal with more than one exchanges with exactly same price or volume
         #ValueError: The truth value of an array with more than one element is ambiguous
-    volume_max_bid = book_dataframe[book_dataframe['Bid Price'] == max_bid_price]['Bid Volume'].max()
-    volume_min_ask = book_dataframe[book_dataframe['Ask Price'] == min_ask_price]['Ask Volume'].max()
-    print('volume_bid: %f e volume_ask: %f' % (volume_max_bid, volume_min_ask))
-    buying_exchange = book_dataframe[book_dataframe['Ask Price'] == min_ask_price]['Exchange'].values.any()
-    selling_exchange = book_dataframe[book_dataframe['Bid Price'] == max_bid_price]['Exchange'].values.any()
-    if (volume_max_bid > volume_min_ask):
-        volume_to_trade = float(0.5*volume_min_ask)
+    max_bid_volume = book_df[book_df['Bid Price'] == max_bid_price]['Bid Volume'].max()
+    min_ask_volume = book_df[book_df['Ask Price'] == min_ask_price]['Ask Volume'].max()
+    print('volume_bid: %f e volume_ask: %f' % (max_bid_volume, min_ask_volume))
+    buying_exchange = book_df.loc[(book_df['Ask Price'] == min_ask_price) & (book_df['Ask Volume'] == min_ask_volume)]['Exchange'][0]
+    selling_exchange = book_df.loc[(book_df['Bid Price'] == max_bid_price) & (book_df['Bid Volume'] == max_bid_volume)]['Exchange'][0]
+    if (max_bid_volume > min_ask_volume):
+        volume_to_trade = float(0.5*min_ask_volume)
     else:
-        volume_to_trade = float(0.5*volume_max_bid)
+        volume_to_trade = float(0.5*max_bid_volume)
     spread = float(max_bid_price/min_ask_price)
     return [spread,max_bid_price,min_ask_price, volume_to_trade, selling_exchange, buying_exchange]
 
@@ -69,6 +73,8 @@ while 1 < 2:
                 greatest_spread = entry_spread
             print('==== \n Maior spread da análise = %f \n====' % greatest_spread)
             print('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (entry_spread, entry_volume))
+            buying_exchange = list_infos[5]
+            selling_exchange = list_infos[4]
             temp_balance += simulate_trade(spread)
             in_trade = True
         else:
@@ -76,12 +82,14 @@ while 1 < 2:
         # print('spread', spread)
         # print(book_2)
     else:
+        print('Trying to close the transaction...')
         # while in_trade == True:
         #     #trying to close the arbitrage. Focus on traded exchanges
         #     #create method to search closing opportunities... on traded exchanges
         #     print('')
-        if (entry_spread-spread[0]) >= target_exit_spread:
-            print('Saindo da operação no spread %f, sendo lucro: %f' % (spread[0], entry_spread-spread[0]))
+        actual_traded_spread = (book2[book2[selling_exchange]]['Bid Price'])/(book2[book2[buying_exchange]]['Ask Price'])
+        if (entry_spread-actual_traded_spread) >= target_exit_spread:
+            print('Saindo da operação no spread %f, sendo lucro: %f' % (actual_traded_spread, entry_spread-actual_traded_spread))
             #todo to exit you need monitor traded exchanges - buy where sold and sell where bought!
             temp_balance += temp_balance + simulate_trade(spread)
             print('Saldo atual: %f' % temp_balance)
