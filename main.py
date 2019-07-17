@@ -81,8 +81,8 @@ def simulate_trade(list_infos):
     usd_sell = (list_infos[1] * list_infos[3])
     buying_exchange = list_infos[5]
     selling_exchange = list_infos[4]
-    print('Comprou: \n Volume: (US$ %s) \n Cotação: %s \n Exchange: %s' % (list_infos[2], usd_buy, buying_exchange))
-    print('Vendeu: \n Volume: (US$ %s) \n Cotação: %s \n Exchange: %s' % (list_infos[1], usd_sell, selling_exchange))
+    print('Comprou: \n Volume: %s \n Cotação: %s \n Custo da Operação: %s \n Exchange: %s' % (list_infos[3], usd_buy, list_infos[2], buying_exchange))
+    print('Vendeu: \n Volume: %s \n Cotação: %s \n Receita da Operação: %s \nExchange: %s' % (list_infos[3], usd_sell, list_infos[1], selling_exchange))
     return ('buying_exchange', buying_exchange, usd_buy), ('selling_exchange', selling_exchange, usd_sell)
 
 
@@ -107,7 +107,7 @@ while 1 < 2:
             temp_balance = operation[0][2] + operation[1][2]
             in_trade = True
         else:
-            print('pulando - target < %f' % target_entry_spread)
+            print('pulando - target %f < %f' % (opportunity[0], target_entry_spread))
         # print('spread', spread)
         # print(book_2)
     else:
