@@ -4,8 +4,8 @@ from fetch_infos import fetch_exchange_data
 import time
 import pandas as pd
 
-target_entry_spread = 1.002
-target_exit_spread = 0.0003
+target_entry_spread = 1.0004
+target_exit_spread = 0.0001
 in_trade = False
 start_balance = float(0)
 temp_balance = float(0)
@@ -13,7 +13,7 @@ greatest_spread = float(0)
 global book_df
 
 
-def generate_dataframe(**kwargs):
+def generate_dataframe():
     exchange_list = ['kraken', 'bittrex', 'bitmex']
     dict = {}
     list_of_books = []
@@ -86,9 +86,17 @@ def simulate_trade(list_infos):
     return ('buying_exchange', buying_exchange, usd_buy), ('selling_exchange', selling_exchange, usd_sell)
 
 
+def spread_of(selling_exchange, buying_exchange):
+    actual_book_df = generate_dataframe()
+    return 0.0001
+
+
 while 1 < 2:
     book_df = generate_dataframe()
     opportunity = best_opportunity()
+
+    selling_exchange = opportunity[4]
+    buying_exchange = opportunity[5]
 
     if not in_trade:
         if opportunity[0] > target_entry_spread:
@@ -100,27 +108,21 @@ while 1 < 2:
             print('==== \n Maior spread da análise = %f \n====' % greatest_spread)
             print('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (
                 entry_spread, entry_volume))
-            # buying_exchange = list_infos[5]
-            # selling_exchange = list_infos[4]
 
             operation = simulate_trade(opportunity)
             temp_balance = operation[0][2] + operation[1][2]
             in_trade = True
         else:
             print('pulando - target %f < %f' % (opportunity[0], target_entry_spread))
-        # print('spread', spread)
-        # print(book_2)
     else:
         print('Trying to close the transaction...')
-    # while in_trade == True:
-    #     #trying to close the arbitrage. Focus on traded exchanges
-    #     #create method to search closing opportunities... on traded exchanges
-    #     print('')
-    # actual_traded_spread = (book2[book2[selling_exchange]]['Bid Price'])/(book2[book2[buying_exchange]]['Ask Price'])
-    # if (entry_spread-actual_traded_spread) >= target_exit_spread:
-    #     print('Saindo da operação no spread %f, sendo lucro: %f' % (actual_traded_spread, entry_spread-actual_traded_spread))
-    #     #todo to exit you need monitor traded exchanges - buy where sold and sell where bought!
-    #     temp_balance += temp_balance + simulate_trade(spread)
-    #     print('Saldo atual: %f' % temp_balance)
-    #     in_trade = False
+
+        actual_spread = spread_of(selling_exchange, buying_exchange)
+        if target_exit_spread <= actual_spread:
+            # TODO: Considerar a taxa
+            profit = (actual_spread - opportunity[0]) * opportunity[3]
+            print('*** Concluindo transação ** ')
+            print(' spread de entrada %f \n spread de saida: %f \n lucro %f' % (opportunity[0], actual_spread, profit))
+            in_trade = False
+
     time.sleep(2)
