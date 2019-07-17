@@ -13,6 +13,7 @@ greatest_spread = float(0)
 global book_df
 fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025}
 
+
 def generate_dataframe():
     exchange_list = ['kraken', 'bittrex', 'bitmex']
     dict = {}
@@ -25,7 +26,9 @@ def generate_dataframe():
         exchange_data = fetch_exchange_data(exchange_name)
         if exchange_data != {}:
             dict[exchange_name] = exchange_data
-            list_of_books.append([exchange_name, exchange_data['bids'][0][0], exchange_data['bids'][0][1], exchange_data['asks'][0][0], exchange_data['asks'][0][1]])
+            list_of_books.append(
+                [exchange_name, exchange_data['bids'][0][0], exchange_data['bids'][0][1], exchange_data['asks'][0][0],
+                 exchange_data['asks'][0][1]])
     return pd.DataFrame(list_of_books, columns=['Exchange', 'Bid Price', 'Bid Volume', 'Ask Price', 'Ask Volume'])
 
 
@@ -81,8 +84,10 @@ def simulate_trade(list_infos):
     usd_sell = (list_infos[1] * list_infos[3])
     buying_exchange = list_infos[5]
     selling_exchange = list_infos[4]
-    print('Comprou: \n Volume: %s \n Cotação: %s \n Custo da Operação: %s \n Exchange: %s' % (list_infos[3], list_infos[2], usd_buy, buying_exchange))
-    print('Vendeu: \n Volume: %s \n Cotação: %s \n Receita da Operação: %s \nExchange: %s' % (list_infos[3], list_infos[1], usd_sell, selling_exchange))
+    print('Comprou: \n Volume: %s \n Cotação: %s \n Custo da Operação: %s \n Exchange: %s' % (
+        list_infos[3], list_infos[2], usd_buy, buying_exchange))
+    print('Vendeu: \n Volume: %s \n Cotação: %s \n Receita da Operação: %s \nExchange: %s' % (
+        list_infos[3], list_infos[1], usd_sell, selling_exchange))
     return ('buying_exchange', buying_exchange, usd_buy), ('selling_exchange', selling_exchange, usd_sell)
 
 
