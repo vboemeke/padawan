@@ -4,15 +4,17 @@ from fetch_infos import fetch_exchange_data
 import time
 import pandas as pd
 
-target_entry_spread = 1.0004
-target_exit_spread = 0.0002
+target_entry_spread = 1.0015
+target_exit_spread = 0.0004
 in_trade = False
 start_balance = float(0)
+actual_balance = float(0)
 temp_balance = float(0)
 greatest_spread = float(0)
 global book_df
 fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025}
 
+print('Saldo inicial: US$ %f' % actual_balance)
 
 def generate_dataframe():
     exchange_list = ['kraken', 'bittrex', 'bitmex']
@@ -88,7 +90,8 @@ def simulate_trade(list_infos):
         list_infos[3], list_infos[2], usd_buy, buying_exchange))
     print('Vendeu: \n Volume: %s \n Cotação: %s \n Receita da Operação: %s \nExchange: %s' % (
         list_infos[3], list_infos[1], usd_sell, selling_exchange))
-    return ('buying_exchange', buying_exchange, usd_buy), ('selling_exchange', selling_exchange, usd_sell)
+    #TODO: fix volume information. repeating same value!
+    return ('buying_exchange', buying_exchange, usd_buy, list_infos[3]), ('selling_exchange', selling_exchange, usd_sell, list_infos[3])
 
 
 def spread_of(selling_exchange, buying_exchange):
@@ -106,6 +109,8 @@ while 1 < 2:
     selling_exchange = opportunity[4]
     buying_exchange = opportunity[5]
 
+    #TODO: greatest spread should be here so we can always monitor hightes values, even when traded!
+
     if not in_trade:
         if opportunity[0] > target_entry_spread:
             entry_spread = float(opportunity[0])
@@ -121,17 +126,29 @@ while 1 < 2:
             temp_balance = operation[0][2] + operation[1][2]
             in_trade = True
         else:
-            print('pulando - target %f < %f' % (opportunity[0], target_entry_spread))
+            print('pulando - atual %f < target %f' % (opportunity[0], target_entry_spread))
     else:
         print('Trying to close the transaction...')
 
+        actual_sell_price_bought_exchange = book_df[book_df['Exchange'] == operation[0][1]]['Bid Price'].values[0]
+        actual_buy_price_sold_exchange = book_df[book_df['Exchange'] == operation[0][1]]['Ask Price'].values[0]
+        # manual calculating spread because actual spread is considering buy again what was already bought...
+        real_actual_spread = actual_buy_price_sold_exchange/actual_sell_price_bought_exchange
+        print('Real spread: %f' % real_actual_spread)
+
         actual_spread = spread_of(selling_exchange, buying_exchange) - 1
-        print('ACTUAL SPREAD %f' % actual_spread)
-        if target_exit_spread <= actual_spread:
-            # TODO: Considerar a taxa
-            profit = (actual_spread - opportunity[0]) * opportunity[3]
-            print('*** Concluindo transação ** ')
-            print(' spread de entrada %f \n spread de saida: %f \n lucro %f' % (opportunity[0], actual_spread, profit))
+        # print('ACTUAL SPREAD %f' % actual_spread)
+        # if target_exit_spread >= actual_spread:
+        delta_spread = (entry_spread - real_actual_spread)
+        print('Spread de entrada - spread atual: %f' % delta_spread)
+        if target_exit_spread <= (entry_spread - real_actual_spread):
+            # TODO: Considerar a taxa e volume inicial
+            profit = temp_balance + ((actual_sell_price_bought_exchange*operation[0][3]) - (actual_buy_price_sold_exchange*operation[0][3]))
+            actual_balance += profit
+            # profit = (actual_spread - opportunity[0]1) * opportunity[3]
+            print('\n*** Concluindo transação ***\n')
+            print(' spread de entrada %f \n spread de saida: %f \n lucro US$ %f' % (opportunity[0], actual_spread, profit))
+            print('Saldo atual: US$ %f' % actual_balance)
             in_trade = False
 
     time.sleep(2)
