@@ -11,7 +11,7 @@ start_balance = float(0)
 temp_balance = float(0)
 greatest_spread = float(0)
 global book_df
-
+fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025}
 
 def generate_dataframe():
     exchange_list = ['kraken', 'bittrex', 'bitmex']
@@ -81,8 +81,8 @@ def simulate_trade(list_infos):
     usd_sell = (list_infos[1] * list_infos[3])
     buying_exchange = list_infos[5]
     selling_exchange = list_infos[4]
-    print('Comprou: \n Volume: %s \n Cotação: %s \n Custo da Operação: %s \n Exchange: %s' % (list_infos[3], usd_buy, list_infos[2], buying_exchange))
-    print('Vendeu: \n Volume: %s \n Cotação: %s \n Receita da Operação: %s \nExchange: %s' % (list_infos[3], usd_sell, list_infos[1], selling_exchange))
+    print('Comprou: \n Volume: %s \n Cotação: %s \n Custo da Operação: %s \n Exchange: %s' % (list_infos[3], list_infos[2], usd_buy, buying_exchange))
+    print('Vendeu: \n Volume: %s \n Cotação: %s \n Receita da Operação: %s \nExchange: %s' % (list_infos[3], list_infos[1], usd_sell, selling_exchange))
     return ('buying_exchange', buying_exchange, usd_buy), ('selling_exchange', selling_exchange, usd_sell)
 
 
