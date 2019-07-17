@@ -4,20 +4,21 @@ from fetch_infos import fetch_exchange_data
 import time
 import pandas as pd
 
-target_entry_spread = 1.0015
-target_exit_spread = 0.0004
+target_entry_spread = 1.0045
+profit_target = 0.0001
 in_trade = False
 start_balance = float(0)
 actual_balance = float(0)
 temp_balance = float(0)
 greatest_spread = float(0)
 global book_df
-fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025}
+#TODO review all fees
+fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025, 'bitfinex': 0.0025, 'bitstamp': 0.0025, 'okcoin': 0.0025}
 
 print('Saldo inicial: US$ %f' % actual_balance)
 
 def generate_dataframe():
-    exchange_list = ['kraken', 'bittrex', 'bitmex']
+    exchange_list = ['kraken', 'bittrex', 'bitmex', 'bitfinex', 'bitstamp', 'okcoin']
     dict = {}
     list_of_books = []
 
@@ -58,6 +59,8 @@ def best_bid_exchange_price():
 
 
 def best_ask_exchange_price():
+    #need to check why: "IndexError: index 0 is out of bounds for axis 0 with size 0"
+    #volume_bid: nan e volume_ask: nan
     return book_df.loc[(book_df['Ask Price'] == min_ask_price()) & (book_df['Ask Volume'] == min_ask_volume())][
         'Exchange'].values[0]
 
@@ -110,18 +113,19 @@ while 1 < 2:
     buying_exchange = opportunity[5]
 
     #TODO: greatest spread should be here so we can always monitor hightes values, even when traded!
+    entry_spread = float(opportunity[0])
+    if entry_spread > greatest_spread:
+        print('*** Novo Record de Spread ***')
+        print('==== \n Maior spread da análise = %f \n====' % greatest_spread)
+        greatest_spread = entry_spread
 
     if not in_trade:
-        if opportunity[0] > target_entry_spread:
-            entry_spread = float(opportunity[0])
+        if entry_spread > target_entry_spread:
             entry_volume = float(opportunity[3])
-            if entry_spread > greatest_spread:
-                print('*** Novo Record de Spread ***')
-                greatest_spread = entry_spread
-            print('==== \n Maior spread da análise = %f \n====' % greatest_spread)
             print('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (
                 entry_spread, entry_volume))
-
+            #creating traded spread to calculate exit_spread_target
+            traded_spread = entry_spread
             operation = simulate_trade(opportunity)
             temp_balance = operation[0][2] + operation[1][2]
             in_trade = True
@@ -138,17 +142,16 @@ while 1 < 2:
 
         actual_spread = spread_of(selling_exchange, buying_exchange) - 1
         # print('ACTUAL SPREAD %f' % actual_spread)
-        # if target_exit_spread >= actual_spread:
-        delta_spread = (entry_spread - real_actual_spread)
-        print('Spread de entrada - spread atual: %f' % delta_spread)
-        if target_exit_spread <= (entry_spread - real_actual_spread):
+        exit_spread_target = traded_spread - profit_target - (2.0*(fees[operation[0][1]]+(fees[operation[1][1]])))
+        print('Spread de entrada - spread atual: %f' % (entry_spread-real_actual_spread))
+        print('Spread target para sair: %f' % exit_spread_target)
+        if exit_spread_target >= real_actual_spread:
             # TODO: Considerar a taxa e volume inicial
             profit = temp_balance + ((actual_sell_price_bought_exchange*operation[0][3]) - (actual_buy_price_sold_exchange*operation[0][3]))
             actual_balance += profit
-            # profit = (actual_spread - opportunity[0]1) * opportunity[3]
             print('\n*** Concluindo transação ***\n')
             print(' spread de entrada %f \n spread de saida: %f \n lucro US$ %f' % (opportunity[0], actual_spread, profit))
             print('Saldo atual: US$ %f' % actual_balance)
             in_trade = False
 
-    time.sleep(2)
+    time.sleep(1)
