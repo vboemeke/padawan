@@ -5,7 +5,7 @@ import time
 import pandas as pd
 
 target_entry_spread = 1.0004
-target_exit_spread = 0.0001
+target_exit_spread = 0.0002
 in_trade = False
 start_balance = float(0)
 temp_balance = float(0)
@@ -88,7 +88,10 @@ def simulate_trade(list_infos):
 
 def spread_of(selling_exchange, buying_exchange):
     actual_book_df = generate_dataframe()
-    return 0.0001
+    selling_exchange_actual_bid = actual_book_df[actual_book_df['Exchange'] == selling_exchange].values[0][1]
+    buying_exchange_actual_sell = actual_book_df[actual_book_df['Exchange'] == buying_exchange].values[0][3]
+
+    return float(selling_exchange_actual_bid) / float(buying_exchange_actual_sell)
 
 
 while 1 < 2:
@@ -117,7 +120,8 @@ while 1 < 2:
     else:
         print('Trying to close the transaction...')
 
-        actual_spread = spread_of(selling_exchange, buying_exchange)
+        actual_spread = spread_of(selling_exchange, buying_exchange) - 1
+        print('ACTUAL SPREAD %f' % actual_spread)
         if target_exit_spread <= actual_spread:
             # TODO: Considerar a taxa
             profit = (actual_spread - opportunity[0]) * opportunity[3]
