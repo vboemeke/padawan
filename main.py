@@ -3,6 +3,7 @@
 from fetch_infos import fetch_exchange_data
 import time
 import pandas as pd
+import db.database as db
 
 target_entry_spread = 1.0045
 profit_target = 0.0001
@@ -12,26 +13,35 @@ actual_balance = float(0)
 temp_balance = float(0)
 greatest_spread = float(0)
 global book_df
-#TODO review all fees
+# TODO review all fees
 fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025, 'bitfinex': 0.0025, 'bitstamp': 0.0025, 'okcoin': 0.0025}
 
 print('Saldo inicial: US$ %f' % actual_balance)
 
+
 def generate_dataframe():
+    db.create_tables()
+
     exchange_list = ['kraken', 'bittrex', 'bitmex', 'bitfinex', 'bitstamp', 'okcoin']
     dict = {}
     list_of_books = []
 
-    # todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
+    # TODO increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
     # but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
 
     for exchange_name in exchange_list:
         exchange_data = fetch_exchange_data(exchange_name)
         if exchange_data != {}:
             dict[exchange_name] = exchange_data
-            list_of_books.append(
-                [exchange_name, exchange_data['bids'][0][0], exchange_data['bids'][0][1], exchange_data['asks'][0][0],
-                 exchange_data['asks'][0][1]])
+
+            max_bid_price = exchange_data['bids'][0][0]
+            max_bid_volume = exchange_data['bids'][0][1]
+            min_ask_price = exchange_data['asks'][0][0]
+            min_ask_volume = exchange_data['asks'][0][1]
+
+            db.add_bid_ask_to_db(exchange_name, max_bid_price, max_bid_volume, min_ask_price, min_ask_volume)
+            list_of_books.append([exchange_name, max_bid_price, max_bid_volume, min_ask_price, min_ask_volume])
+
     return pd.DataFrame(list_of_books, columns=['Exchange', 'Bid Price', 'Bid Volume', 'Ask Price', 'Ask Volume'])
 
 
@@ -59,8 +69,8 @@ def best_bid_exchange_price():
 
 
 def best_ask_exchange_price():
-    #need to check why: "IndexError: index 0 is out of bounds for axis 0 with size 0"
-    #volume_bid: nan e volume_ask: nan
+    # need to check why: "IndexError: index 0 is out of bounds for axis 0 with size 0"
+    # volume_bid: nan e volume_ask: nan
     return book_df.loc[(book_df['Ask Price'] == min_ask_price()) & (book_df['Ask Volume'] == min_ask_volume())][
         'Exchange'].values[0]
 
@@ -93,8 +103,9 @@ def simulate_trade(list_infos):
         list_infos[3], list_infos[2], usd_buy, buying_exchange))
     print('Vendeu: \n Volume: %s \n Cotação: %s \n Receita da Operação: %s \nExchange: %s' % (
         list_infos[3], list_infos[1], usd_sell, selling_exchange))
-    #TODO: fix volume information. repeating same value!
-    return ('buying_exchange', buying_exchange, usd_buy, list_infos[3]), ('selling_exchange', selling_exchange, usd_sell, list_infos[3])
+    # TODO: fix volume information. repeating same value!
+    return ('buying_exchange', buying_exchange, usd_buy, list_infos[3]), (
+        'selling_exchange', selling_exchange, usd_sell, list_infos[3])
 
 
 def spread_of(selling_exchange, buying_exchange):
@@ -112,7 +123,7 @@ while 1 < 2:
     selling_exchange = opportunity[4]
     buying_exchange = opportunity[5]
 
-    #TODO: greatest spread should be here so we can always monitor hightes values, even when traded!
+    # TODO: greatest spread should be here so we can always monitor hightes values, even when traded!
     entry_spread = float(opportunity[0])
     if entry_spread > greatest_spread:
         print('*** Novo Record de Spread ***')
@@ -124,7 +135,7 @@ while 1 < 2:
             entry_volume = float(opportunity[3])
             print('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (
                 entry_spread, entry_volume))
-            #creating traded spread to calculate exit_spread_target
+            # creating traded spread to calculate exit_spread_target
             traded_spread = entry_spread
             operation = simulate_trade(opportunity)
             temp_balance = operation[0][2] + operation[1][2]
@@ -137,20 +148,22 @@ while 1 < 2:
         actual_sell_price_bought_exchange = book_df[book_df['Exchange'] == operation[0][1]]['Bid Price'].values[0]
         actual_buy_price_sold_exchange = book_df[book_df['Exchange'] == operation[0][1]]['Ask Price'].values[0]
         # manual calculating spread because actual spread is considering buy again what was already bought...
-        real_actual_spread = actual_buy_price_sold_exchange/actual_sell_price_bought_exchange
+        real_actual_spread = actual_buy_price_sold_exchange / actual_sell_price_bought_exchange
         print('Real spread: %f' % real_actual_spread)
 
         actual_spread = spread_of(selling_exchange, buying_exchange) - 1
         # print('ACTUAL SPREAD %f' % actual_spread)
-        exit_spread_target = traded_spread - profit_target - (2.0*(fees[operation[0][1]]+(fees[operation[1][1]])))
-        print('Spread de entrada - spread atual: %f' % (entry_spread-real_actual_spread))
+        exit_spread_target = traded_spread - profit_target - (2.0 * (fees[operation[0][1]] + (fees[operation[1][1]])))
+        print('Spread de entrada - spread atual: %f' % (entry_spread - real_actual_spread))
         print('Spread target para sair: %f' % exit_spread_target)
         if exit_spread_target >= real_actual_spread:
             # TODO: Considerar a taxa e volume inicial
-            profit = temp_balance + ((actual_sell_price_bought_exchange*operation[0][3]) - (actual_buy_price_sold_exchange*operation[0][3]))
+            profit = temp_balance + ((actual_sell_price_bought_exchange * operation[0][3]) - (
+                    actual_buy_price_sold_exchange * operation[0][3]))
             actual_balance += profit
             print('\n*** Concluindo transação ***\n')
-            print(' spread de entrada %f \n spread de saida: %f \n lucro US$ %f' % (opportunity[0], actual_spread, profit))
+            print(' spread de entrada %f \n spread de saida: %f \n lucro US$ %f' % (
+                opportunity[0], actual_spread, profit))
             print('Saldo atual: US$ %f' % actual_balance)
             in_trade = False
 
