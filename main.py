@@ -26,7 +26,7 @@ def generate_dataframe():
     dict = {}
     list_of_books = []
 
-    # todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
+    # TODO increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
     # but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
 
     for exchange_name in exchange_list:
