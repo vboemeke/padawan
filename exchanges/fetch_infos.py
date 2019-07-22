@@ -1,5 +1,14 @@
 import ccxt
 
+exchange_list = ['kraken', 'bittrex', 'bitmex', 'bitfinex', 'bitstamp', 'okcoin']
+
+exchange_fees = {'bitmex': 0.0020,
+                 'bittrex': 0.0020,
+                 'kraken': 0.0025,
+                 'bitfinex': 0.0025,
+                 'bitstamp': 0.0025,
+                 'okcoin': 0.0025}
+
 
 def fetch_exchange_data(exchange_name):
     # binance = ccxt.binance()
@@ -22,5 +31,6 @@ def fetch_exchange_data(exchange_name):
                          'okcoin': okcoin}
     try:
         return dict(dict_of_exchanges[exchange_name].fetch_order_book('BTC/USD'))
-    except:
+    except Exception as ex:
+        print(ex)
         return {}

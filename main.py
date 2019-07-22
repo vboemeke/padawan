@@ -1,10 +1,10 @@
 # coding=utf-8
 
-from fetch_infos import fetch_exchange_data
 from log import logger
 import time
 import db.database as db
 import pandas as pd
+import exchanges.fetch_infos as exchanges
 
 target_entry_spread = 1.0045
 profit_target = 0.0001
@@ -17,15 +17,14 @@ global book_df
 
 
 def generate_dataframe():
-    exchange_list = ['kraken', 'bittrex', 'bitmex', 'bitfinex', 'bitstamp', 'okcoin']
     dict = {}
     list_of_books = []
 
     # TODO increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
     # but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
 
-    for exchange_name in exchange_list:
-        exchange_data = fetch_exchange_data(exchange_name)
+    for exchange_name in exchanges.exchange_list:
+        exchange_data = exchanges.fetch_exchange_data(exchange_name)
         if exchange_data != {}:
             dict[exchange_name] = exchange_data
 
@@ -122,7 +121,6 @@ setup_environment()
 attempt = db.new_attempt(actual_balance, target_entry_spread, profit_target)
 logger.create_log_file(attempt, target_entry_spread, profit_target)
 
-fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025, 'bitfinex': 0.0025, 'bitstamp': 0.0025, 'okcoin': 0.0025}
 
 logger.run('Saldo inicial: US$ %f' % actual_balance)
 
@@ -163,7 +161,7 @@ while 1 < 2:
 
         actual_spread = spread_of(selling_exchange, buying_exchange) - 1
         # logger.run('ACTUAL SPREAD %f' % actual_spread)
-        exit_spread_target = traded_spread - profit_target - (2.0 * (fees[operation[0][1]] + (fees[operation[1][1]])))
+        exit_spread_target = traded_spread - profit_target - (2.0 * (exchanges.fees[operation[0][1]] + (exchanges.fees[operation[1][1]])))
         logger.run('Spread de entrada - spread atual: %f' % (entry_spread - real_actual_spread))
         logger.run('Spread target para sair: %f' % exit_spread_target)
         if exit_spread_target >= real_actual_spread:
