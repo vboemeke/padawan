@@ -7,7 +7,7 @@ import pandas as pd
 import exchanges.fetch_infos as exchanges
 
 target_entry_spread = 1.0045
-profit_target = 0.0001
+profit_target = 0.00001
 in_trade = False
 start_balance = float(0)
 actual_balance = float(0)
@@ -70,8 +70,6 @@ def best_ask_exchange_price():
 
 
 def best_opportunity():
-    logger.run('volume_bid: %f e volume_ask: %f' % (max_bid_volume(), min_ask_volume()))
-
     buying_exchange = best_ask_exchange_price()
     selling_exchange = best_bid_exchange_price()
 
@@ -81,7 +79,9 @@ def best_opportunity():
             min_ask_price(),
             trade_volume(max_bid_volume(), min_ask_volume()),
             selling_exchange,
-            buying_exchange]
+            buying_exchange,
+            max_bid_volume(),
+            min_ask_volume()]
 
 
 def trade_volume(bid, ask):
@@ -121,12 +121,14 @@ setup_environment()
 attempt = db.new_attempt(actual_balance, target_entry_spread, profit_target)
 logger.create_log_file(attempt, target_entry_spread, profit_target)
 
-
-logger.run('Saldo inicial: US$ %f' % actual_balance)
+logger.run('✅💰 Saldo inicial: US$ %f 💰✅' % actual_balance)
 
 while 1 < 2:
     book_df = generate_dataframe()
     opportunity = best_opportunity()
+
+    logger.run('###############################')
+    logger.run('Volume Bid: %f e Volume Ask: %f' % (opportunity[6], opportunity[7]))
 
     selling_exchange = opportunity[4]
     buying_exchange = opportunity[5]
@@ -134,22 +136,26 @@ while 1 < 2:
     # TODO: greatest spread should be here so we can always monitor hightes values, even when traded!
     entry_spread = float(opportunity[0])
     if entry_spread > greatest_spread:
-        logger.run('*** Novo Record de Spread ***')
+        logger.run('📈 *** Novo Record de Spread *** 📈')
         logger.run('==== \n Maior spread da análise = %f \n====' % greatest_spread)
         greatest_spread = entry_spread
 
     if not in_trade:
         if entry_spread > target_entry_spread:
             entry_volume = float(opportunity[3])
+            logger.run('💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰')
             logger.run('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (
                 entry_spread, entry_volume))
+            logger.run('💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰')
             # creating traded spread to calculate exit_spread_target
             traded_spread = entry_spread
             operation = simulate_trade(opportunity)
             temp_balance = operation[0][2] + operation[1][2]
             in_trade = True
         else:
-            logger.run('pulando - atual %f < target %f' % (opportunity[0], target_entry_spread))
+            logger.run('🏃 ‍Jumping - Current Spread %f < Target Spread %f. ###### Selling %s X Buying %s ###### 🏃' %
+                       (opportunity[0], target_entry_spread, selling_exchange.upper(), buying_exchange.upper()))
+
     else:
         logger.run('Trying to close the transaction...')
 
@@ -157,11 +163,12 @@ while 1 < 2:
         actual_buy_price_sold_exchange = book_df[book_df['Exchange'] == operation[0][1]]['Ask Price'].values[0]
         # manual calculating spread because actual spread is considering buy again what was already bought...
         real_actual_spread = actual_buy_price_sold_exchange / actual_sell_price_bought_exchange
-        logger.run('Real spread: %f' % real_actual_spread)
+        logger.run('Real Spread: %f' % real_actual_spread)
 
         actual_spread = spread_of(selling_exchange, buying_exchange) - 1
         # logger.run('ACTUAL SPREAD %f' % actual_spread)
-        exit_spread_target = traded_spread - profit_target - (2.0 * (exchanges.fees[operation[0][1]] + (exchanges.fees[operation[1][1]])))
+        exit_spread_target = traded_spread - profit_target - (
+                2.0 * (exchanges.fees[operation[0][1]] + (exchanges.fees[operation[1][1]])))
         logger.run('Spread de entrada - spread atual: %f' % (entry_spread - real_actual_spread))
         logger.run('Spread target para sair: %f' % exit_spread_target)
         if exit_spread_target >= real_actual_spread:
@@ -172,7 +179,7 @@ while 1 < 2:
             logger.run('\n*** Concluindo transação ***\n')
             logger.run(' spread de entrada %f \n spread de saida: %f \n lucro US$ %f' % (
                 opportunity[0], actual_spread, profit))
-            logger.run('Saldo atual: US$ %f' % actual_balance)
+            logger.run('Current balance: US$ %f' % actual_balance)
             in_trade = False
 
     time.sleep(1)
