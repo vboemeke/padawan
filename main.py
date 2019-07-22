@@ -4,16 +4,18 @@ from fetch_infos import fetch_exchange_data
 import time
 import pandas as pd
 
-target_entry_spread = 1.0045
-profit_target = 0.0001
+#TODO try to calculate target_entry dynamically per opportunity considering profit target and both exchanges fees
+target_entry_spread = 1.0042
+profit_target = 0.000015
 in_trade = False
-start_balance = float(0)
-actual_balance = float(0)
-temp_balance = float(0)
-greatest_spread = float(0)
+start_balance = 0.00
+actual_balance = 0.00
+temp_balance = 0.00
+greatest_spread = 0.00
 global book_df
 #TODO review all fees
-fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025, 'bitfinex': 0.0025, 'bitstamp': 0.0025, 'okcoin': 0.0025}
+# fees = {'bitmex': 0.0020, 'bittrex': 0.0020, 'kraken': 0.0025, 'bitfinex': 0.0020, 'bitstamp': 0.0020, 'okcoin': 0.0020}
+fees = {'bitmex': 0.005, 'bittrex': 0.0025, 'kraken': 0.0016, 'bitfinex': 0.0015, 'bitstamp': 0.0024, 'okcoin': 0.00075}
 
 print('Saldo inicial: US$ %f' % actual_balance)
 
@@ -21,9 +23,6 @@ def generate_dataframe():
     exchange_list = ['kraken', 'bittrex', 'bitmex', 'bitfinex', 'bitstamp', 'okcoin']
     dict = {}
     list_of_books = []
-
-    # todo increase exchange list (validate symbols 'BTC/USC' doesn't work on other exchanges
-    # but we need to check if is the same coin - ex. Dolar vs. Stable Dolar)
 
     for exchange_name in exchange_list:
         exchange_data = fetch_exchange_data(exchange_name)
@@ -54,6 +53,8 @@ def min_ask_volume():
 
 
 def best_bid_exchange_price():
+    #need to check why: "IndexError: index 0 is out of bounds for axis 0 with size 0"
+    #volume_bid: nan e volume_ask: nan
     return book_df.loc[(book_df['Bid Price'] == max_bid_price()) & (book_df['Bid Volume'] == max_bid_volume())][
         'Exchange'].values[0]
 
@@ -116,11 +117,11 @@ while 1 < 2:
     entry_spread = float(opportunity[0])
     if entry_spread > greatest_spread:
         print('*** Novo Record de Spread ***')
-        print('==== \n Maior spread da análise = %f \n====' % greatest_spread)
         greatest_spread = entry_spread
+        print('==== \n Maior spread da análise = %f \n====' % greatest_spread)
 
     if not in_trade:
-        if entry_spread > target_entry_spread:
+        if (entry_spread > target_entry_spread) & ((entry_spread - profit_target - (2.0*(fees[opportunity[4]]+fees[opportunity[5]]))) > 1.0000):
             entry_volume = float(opportunity[3])
             print('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (
                 entry_spread, entry_volume))
@@ -134,6 +135,7 @@ while 1 < 2:
     else:
         print('Trying to close the transaction...')
 
+        # need to check why: "IndexError: index 0 is out of bounds for axis 0 with size 0"
         actual_sell_price_bought_exchange = book_df[book_df['Exchange'] == operation[0][1]]['Bid Price'].values[0]
         actual_buy_price_sold_exchange = book_df[book_df['Exchange'] == operation[0][1]]['Ask Price'].values[0]
         # manual calculating spread because actual spread is considering buy again what was already bought...
