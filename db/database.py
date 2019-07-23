@@ -7,7 +7,7 @@ logs_dir = './data/logs'
 
 
 def create_tables():
-    exchanges = ['bitstamp', 'bitmex', 'bitfinex', 'bittrex', 'okcoin', 'kraken']
+    exchanges = ['kraken', 'bittrex', 'bitmex', 'bitfinex', 'bitstamp', 'okcoin', 'binance', 'coss', 'kucoin', 'poloniex', 'theocean', 'upbit']
 
     create_attempt_table()
 

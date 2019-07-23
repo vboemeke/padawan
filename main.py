@@ -6,15 +6,14 @@ import db.database as db
 import pandas as pd
 import exchanges.fetch_infos as exchanges
 
-target_entry_spread = 1.0045
+target_entry_spread = 1.0025
 profit_target = 0.00001
 in_trade = False
-start_balance = float(0)
-actual_balance = float(0)
-temp_balance = float(0)
-greatest_spread = float(0)
+start_balance = 0.00
+actual_balance = 0.00
+temp_balance = 0.00
+greatest_spread = 0.00
 global book_df
-
 
 def generate_dataframe():
     dict = {}
@@ -128,20 +127,21 @@ while 1 < 2:
     opportunity = best_opportunity()
 
     logger.run('###############################')
-    logger.run('Volume Bid: %f e Volume Ask: %f' % (opportunity[6], opportunity[7]))
+    # logger.run('Volume Bid: %f e Volume Ask: %f' % (opportunity[6], opportunity[7]))
 
     selling_exchange = opportunity[4]
     buying_exchange = opportunity[5]
 
-    # TODO: greatest spread should be here so we can always monitor hightes values, even when traded!
     entry_spread = float(opportunity[0])
     if entry_spread > greatest_spread:
         logger.run('📈 *** Novo Record de Spread *** 📈')
-        logger.run('==== \n Maior spread da análise = %f \n====' % greatest_spread)
         greatest_spread = entry_spread
 
+    logger.run('==== \n Maior spread da análise = %f \n====' % greatest_spread)
+
     if not in_trade:
-        if entry_spread > target_entry_spread:
+        print('Spread atual - taxas e lucro:  %f' %(entry_spread - profit_target - (2.0*(exchanges.exchange_fees[opportunity[4]]+exchanges.exchange_fees[opportunity[5]]))))
+        if (entry_spread > target_entry_spread) & ((entry_spread - profit_target - (2.0*(exchanges.exchange_fees[opportunity[4]]+exchanges.exchange_fees[opportunity[5]]))) > 1.00) & (selling_exchange != buying_exchange):
             entry_volume = float(opportunity[3])
             logger.run('💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰')
             logger.run('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (
@@ -165,10 +165,11 @@ while 1 < 2:
         real_actual_spread = actual_buy_price_sold_exchange / actual_sell_price_bought_exchange
         logger.run('Real Spread: %f' % real_actual_spread)
 
+        #TODO look at "spread_of()" - it's probably losing performance generating a new dataframe!
         actual_spread = spread_of(selling_exchange, buying_exchange) - 1
         # logger.run('ACTUAL SPREAD %f' % actual_spread)
         exit_spread_target = traded_spread - profit_target - (
-                2.0 * (exchanges.fees[operation[0][1]] + (exchanges.fees[operation[1][1]])))
+                2.0 * (exchanges.exchange_fees[operation[0][1]] + (exchanges.exchange_fees[operation[1][1]])))
         logger.run('Spread de entrada - spread atual: %f' % (entry_spread - real_actual_spread))
         logger.run('Spread target para sair: %f' % exit_spread_target)
         if exit_spread_target >= real_actual_spread:
@@ -179,7 +180,12 @@ while 1 < 2:
             logger.run('\n*** Concluindo transação ***\n')
             logger.run(' spread de entrada %f \n spread de saida: %f \n lucro US$ %f' % (
                 opportunity[0], actual_spread, profit))
-            logger.run('Current balance: US$ %f' % actual_balance)
+
+            #checking available exit volume:
+            if opportunity[3] < operation[0][3]:
+                logger.run('🚨 Atenção: volume de saída menor do que o de entrada! Entrada: %f BTC e saída: %f BTC 🚨' % (operation[0][3],opportunity[3]))
+
+            logger.run('🥂 Current balance: US$ %f 🥂' % actual_balance)
             in_trade = False
 
     time.sleep(1)
