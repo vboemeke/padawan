@@ -1,8 +1,8 @@
 # coding=utf-8
 
 from log import logger
+from db.database import Database
 import time
-import db.database as db
 import pandas as pd
 import exchanges.fetch_infos as exchanges
 
@@ -14,6 +14,8 @@ actual_balance = 0.00
 temp_balance = 0.00
 greatest_spread = 0.00
 global book_df
+db = Database()
+
 
 def generate_dataframe():
     dict = {}
@@ -102,21 +104,14 @@ def simulate_trade(list_infos):
 
 
 def spread_of(selling_exchange, buying_exchange):
-    actual_book_df = generate_dataframe()
-    selling_exchange_actual_bid = actual_book_df[actual_book_df['Exchange'] == selling_exchange].values[0][1]
-    buying_exchange_actual_sell = actual_book_df[actual_book_df['Exchange'] == buying_exchange].values[0][3]
+    selling_exchange_actual_bid = book_df[book_df['Exchange'] == selling_exchange].values[0][1]
+    buying_exchange_actual_sell = book_df[book_df['Exchange'] == buying_exchange].values[0][3]
 
     return float(selling_exchange_actual_bid) / float(buying_exchange_actual_sell)
 
 
-def setup_environment():
-    db.create_log_path()
-    db.create_tables()
-
-
 # The magic begins here!
 
-setup_environment()
 attempt = db.new_attempt(actual_balance, target_entry_spread, profit_target)
 logger.create_log_file(attempt, target_entry_spread, profit_target)
 
@@ -140,8 +135,12 @@ while 1 < 2:
     logger.run('==== \n Maior spread da análise = %f \n====' % greatest_spread)
 
     if not in_trade:
-        print('Spread atual - taxas e lucro:  %f' %(entry_spread - profit_target - (2.0*(exchanges.exchange_fees[opportunity[4]]+exchanges.exchange_fees[opportunity[5]]))))
-        if (entry_spread > target_entry_spread) & ((entry_spread - profit_target - (2.0*(exchanges.exchange_fees[opportunity[4]]+exchanges.exchange_fees[opportunity[5]]))) > 1.00) & (selling_exchange != buying_exchange):
+        print('Spread atual - taxas e lucro:  %f' % (entry_spread - profit_target - (
+                2.0 * (exchanges.exchange_fees[opportunity[4]] + exchanges.exchange_fees[opportunity[5]]))))
+        if (entry_spread > target_entry_spread) & ((entry_spread - profit_target - (
+                2.0 * (
+                exchanges.exchange_fees[opportunity[4]] + exchanges.exchange_fees[opportunity[5]]))) > 1.00) & (
+                selling_exchange != buying_exchange):
             entry_volume = float(opportunity[3])
             logger.run('💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰💰')
             logger.run('Entrando na operação com spread: %f e volume: %f BTC (0.5x do volume do menor book)' % (
@@ -153,8 +152,9 @@ while 1 < 2:
             temp_balance = operation[0][2] + operation[1][2]
             in_trade = True
         else:
-            logger.run('🏃 ‍Jumping - Current Spread %f < Target Spread %f. ###### Selling %s X Buying %s ###### 🏃' %
-                       (opportunity[0], target_entry_spread, selling_exchange.upper(), buying_exchange.upper()))
+            logger.run(
+                '🏃 ‍Jumping - Current Spread %f < Target Spread %f. ###### Selling %s X Buying %s ###### 🏃' %
+                (opportunity[0], target_entry_spread, selling_exchange.upper(), buying_exchange.upper()))
 
     else:
         logger.run('Trying to close the transaction...')
@@ -165,7 +165,7 @@ while 1 < 2:
         real_actual_spread = actual_buy_price_sold_exchange / actual_sell_price_bought_exchange
         logger.run('Real Spread: %f' % real_actual_spread)
 
-        #TODO look at "spread_of()" - it's probably losing performance generating a new dataframe!
+        # TODO look at "spread_of()" - it's probably losing performance generating a new dataframe!
         actual_spread = spread_of(selling_exchange, buying_exchange) - 1
         # logger.run('ACTUAL SPREAD %f' % actual_spread)
         exit_spread_target = traded_spread - profit_target - (
@@ -181,9 +181,11 @@ while 1 < 2:
             logger.run(' spread de entrada %f \n spread de saida: %f \n lucro US$ %f' % (
                 opportunity[0], actual_spread, profit))
 
-            #checking available exit volume:
+            # checking available exit volume:
             if opportunity[3] < operation[0][3]:
-                logger.run('🚨 Atenção: volume de saída menor do que o de entrada! Entrada: %f BTC e saída: %f BTC 🚨' % (operation[0][3],opportunity[3]))
+                logger.run(
+                    '🚨 Atenção: volume de saída menor do que o de entrada! Entrada: %f BTC e saída: %f BTC 🚨' % (
+                        operation[0][3], opportunity[3]))
 
             logger.run('🥂 Current balance: US$ %f 🥂' % actual_balance)
             in_trade = False
