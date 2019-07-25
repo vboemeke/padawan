@@ -1,10 +1,12 @@
 # coding=utf-8
 
-from log import logger
-from db.database import Database
 import time
+
 import pandas as pd
+
 import exchanges.fetch_infos as exchanges
+from db.database import Database
+from log.logger import Logger
 
 target_entry_spread = 1.0025
 profit_target = 0.00001
@@ -113,7 +115,7 @@ def spread_of(selling_exchange, buying_exchange):
 # The magic begins here!
 
 attempt = db.new_attempt(actual_balance, target_entry_spread, profit_target)
-logger.create_log_file(attempt, target_entry_spread, profit_target)
+logger = Logger(attempt, target_entry_spread, profit_target)
 
 logger.run('✅💰 Saldo inicial: US$ %f 💰✅' % actual_balance)
 
