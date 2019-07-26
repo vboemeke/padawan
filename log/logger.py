@@ -15,8 +15,8 @@ class Logger:
 
     def __create_log_file(self):
         now = datetime.datetime.now()
-        formated_date = now.strftime("%Y_%m_%d##%H_%M_%S")
-        log_filename = './data/logs/' + str(self.__attempt) + '#' + formated_date
+        formatted_date = now.strftime("%Y_%m_%d##%H_%M_%S")
+        log_filename = './data/logs/' + str(self.__attempt) + '#' + formatted_date
 
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
