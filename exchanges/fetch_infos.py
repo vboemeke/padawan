@@ -1,6 +1,17 @@
 import ccxt
 
-exchange_list = ['kraken', 'bittrex', 'bitmex', 'bitfinex', 'bitstamp', 'okcoin', 'binance', 'coss', 'kucoin', 'poloniex', 'theocean', 'upbit']
+exchange_list = ['kraken',
+                 'bittrex',
+                 'bitmex',
+                 'bitfinex',
+                 'bitstamp',
+                 'okcoin',
+                 'binance',
+                 'coss',
+                 'kucoin',
+                 'poloniex',
+                 'theocean',
+                 'upbit']
 
 # Original fees (blackbird)
 # exchange_fees = {'bitmex': 0.0020,
@@ -33,16 +44,14 @@ exchange_fees = {'bitmex': 0.005,
                  'upbit': 0.006
                  }
 
+
 def fetch_exchange_data(exchange_name):
     bitstamp = ccxt.bitstamp()
     bitmex = ccxt.bitmex()
     bitfinex = ccxt.bitfinex2()
     bittrex = ccxt.bittrex()
     okcoin = ccxt.okcoinusd()
-    kraken = ccxt.kraken({
-        'apiKey': 'YOUR_PUBLIC_API_KEY',
-        'secret': 'YOUR_SECRET_PRIVATE_KEY',
-    })
+    kraken = ccxt.kraken()
     binance = ccxt.binance()
     coss = ccxt.coss()
     kucoin = ccxt.kucoin2()
@@ -68,5 +77,5 @@ def fetch_exchange_data(exchange_name):
         # add BitcoinCash
         # return dict(dict_of_exchanges[exchange_name].fetch_order_book('ETH/USD'))
     except Exception as ex:
-        print('%s - erro: %s' %(exchange_name, ex))
+        print('%s - erro: %s' % (exchange_name, ex))
         return {}
