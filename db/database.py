@@ -1,6 +1,6 @@
-import sqlite3
 import datetime
 import os
+import sqlite3
 
 
 class Database:
@@ -31,6 +31,8 @@ class Database:
                      'poloniex', 'theocean', 'upbit']
 
         self.__create_attempt_table()
+        self.__create_trade_table()
+        self.__create_opportunity_table()
 
         for exchange in exchanges:
             self.__create_exchange_table(exchange)
@@ -64,6 +66,46 @@ class Database:
 
         self.__conn.commit()
 
+    def __create_trade_table(self):
+        self.__cursor.execute(
+            'CREATE TABLE IF NOT EXISTS trade ('
+            ' id INTEGER PRIMARY KEY AUTOINCREMENT,'
+            ' created_at DATETIME NOT NULL,'
+            ' buying_exchange TEXT,'
+            ' usd_buy DECIMAL(8, 2),'
+            ' selling_exchange TEXT,'
+            ' usd_sell DECIMAL(8, 2),'
+            ' trade_volume DECIMAL(8, 2),'
+            ' attempt_id INTEGER,'
+            ' opportunity_id INTEGER,'
+            ' CONSTRAINT fk_attempts'
+            '   FOREIGN KEY (attempt_id)'
+            '   REFERENCES attempts(id),'
+            ' CONSTRAINT fk_opportunity,'
+            '   FOREIGN KEY (opportunity_id)'
+            '   REFERENCES opportunity(id))')
+
+        self.__conn.commit()
+
+    def __create_opportunity_table(self):
+        self.__cursor.execute(
+            'CREATE TABLE IF NOT EXISTS opportunity ('
+            ' id INTEGER PRIMARY KEY AUTOINCREMENT,'
+            ' created_at DATETIME NOT NULL,'
+            ' selling_exchange TEXT NOT NULL,'
+            ' buying_exchange TEXT NOT NULL,'
+            ' max_bid_price DECIMAL(8, 2),'
+            ' min_ask_price DECIMAL(8, 2),'
+            ' max_bid_volume DECIMAL(8, 2),'
+            ' min_ask_volume DECIMAL(8, 2),'
+            ' spread DECIMAL(8, 2),'
+            ' attempt_id INTEGER,'
+            ' CONSTRAINT fk_attempts'
+            '   FOREIGN KEY (attempt_id)'
+            '   REFERENCES attempts(id))')
+
+        self.__conn.commit()
+
     def add_bid_ask_to_db(self, exchange_name, bid, bid_volume, ask, ask_volume, attempt):
 
         self.__cursor.execute('''INSERT INTO {table_name}(created_at, bid, bid_volume, ask, ask_volume, attempt_id)
@@ -85,3 +127,51 @@ class Database:
         self.__conn.commit()
 
         return self.__cursor.lastrowid
+
+    def new_opportunity(self,
+                        selling_exchange,
+                        buying_exchange,
+                        max_bid_price,
+                        min_ask_price,
+                        max_bid_volume,
+                        min_ask_volume,
+                        spread,
+                        attempt_id):
+
+        self.__cursor.execute('''INSERT INTO opportunity(created_at,
+                            selling_exchange,
+                            buying_exchange,
+                            max_bid_price,
+                            min_ask_price,
+                            max_bid_volume,
+                            min_ask_volume,
+                            spread,
+                            attempt_id)
+                          VALUES(?,?,?,?,?,?,?,?,?)''',
+                              (datetime.datetime.now(), selling_exchange, buying_exchange, max_bid_price,
+                               min_ask_price, max_bid_volume, min_ask_volume, spread, attempt_id))
+
+        self.__conn.commit()
+
+    def new_trade(self,
+                  buying_exchange,
+                  usd_buy,
+                  selling_exchange,
+                  usd_sell,
+                  trade_volume,
+                  attempt_id,
+                  opportunity_id):
+
+        self.__cursor.execute('''INSERT INTO trade(created_at,
+                            buying_exchange,
+                            usd_buy,
+                            selling_exchange,
+                            usd_sell,
+                            trade_volume,
+                            attempt_id,
+                            opportunity_id)
+                          VALUES(?,?,?,?,?,?,?,?)''',
+                              (datetime.datetime.now(), buying_exchange, usd_buy, selling_exchange,
+                               usd_sell, trade_volume, attempt_id, opportunity_id))
+
+        self.__conn.commit()
